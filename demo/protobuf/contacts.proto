@@ -1,0 +1,16 @@
+// protoc --cpp_out=. contacts.proto 
+//声明语法版本
+
+
+syntax = "proto3";
+
+//声明命名空间
+package contacts;
+
+//定义结构对象描述
+message contact {
+    //各个字段描述 字段类型 字段名 = 字段唯一编号
+    uint64 sn = 1;
+    string name = 2;
+    float score = 3;
+};

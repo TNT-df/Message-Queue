@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/protoc.dir/src/google/protobuf/compiler/main.cc.o -o protoc-3.21.12.0  -Wl,-rpath,:::::::::::::: libprotoc.a libprotobuf.a 

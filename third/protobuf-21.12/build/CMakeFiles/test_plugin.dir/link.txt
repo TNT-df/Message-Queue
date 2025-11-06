@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/test_plugin.dir/src/google/protobuf/compiler/mock_code_generator.cc.o CMakeFiles/test_plugin.dir/src/google/protobuf/compiler/test_plugin.cc.o CMakeFiles/test_plugin.dir/src/google/protobuf/testing/file.cc.o -o test_plugin  libprotoc.a libprotobuf.a libgmock.a 
