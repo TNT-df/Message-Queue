@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package tnt;
+
+message TranslateRequest {
+  string msg = 1;
+}
+
+message TranslateResponse {
+  string msg = 1;
+}
+
+message CalcuateRequest {
+  int32 num1 = 1;
+  int32 num2 = 2;
+  string op = 3;
+};
+
+message CalcuateResponse {
+  int32 result = 1;
+  int32 code = 2;
+};
