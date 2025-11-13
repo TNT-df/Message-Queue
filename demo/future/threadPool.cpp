@@ -23,10 +23,10 @@ public:
     }
     // push 传入函数和参数，内部将传入的函数封装成一个异步任务(package_task)，并存入任务队列
     template <typename F, typename... Args>
-    auto push(F &&func, Args &&...args) -> std::future<std::invoke_result_t<F, Args...>>
+    auto push(F &&func, Args &&...args) -> std::future<decltype(func(args...))>
     {
         // 1、将传入的函数封装成一个异步任务(package_task)
-        using return_type = std::invoke_result_t<F, Args...>;
+        using return_type = decltype(func(args...));
         auto tmp_func = std::bind(std::forward<F>(func), std::forward<Args>(args)...);
         auto task = std::make_shared<std::packaged_task<return_type()>>(tmp_func);
         std::future<return_type> fut = task->get_future();
@@ -39,7 +39,8 @@ public:
                 throw std::runtime_error("push on stopped ThreadPool");
             }
             // 3、将构造出来的匿名函数对象，加入到任务池中
-            _taskpool.push_back([task]() { (*task)(); });
+            _taskpool.push_back([task]()
+                                { (*task)(); });
         }
         _condition.notify_one();
         return fut;
@@ -77,11 +78,11 @@ private:
                 // 任务池不为空 或者_stop被置位
                 _condition.wait(lock, [this]()
                                 { return !_taskpool.empty() || _stop.load(); });
-                
+
                 // 如果停止且任务队列为空，退出线程
                 if (_stop.load() && _taskpool.empty())
                     return;
-                
+
                 tmp_taskpool.swap(_taskpool);
             }
             // 取出任务进行执行
@@ -109,19 +110,19 @@ int main()
 {
     ThreadPool pool(4);
     std::vector<std::future<int>> results;
-    
+
     // 先提交所有任务
-    for(int i = 0; i < 10; i++)
+    for (int i = 0; i < 10; i++)
     {
-        results.push_back(pool.push(add, i, i+1));
+        results.push_back(pool.push(add, i, i + 1));
     }
-    
+
     // 再获取所有结果
-    for(size_t i = 0; i < results.size(); i++)
+    for (size_t i = 0; i < results.size(); i++)
     {
         std::cout << "Result: " << results[i].get() << std::endl;
     }
-    
+
     pool.stop();
     return 0;
 }
