@@ -20,6 +20,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fstream>
+#include <cstdio>
+#include <sstream>
+#include <cstring>
+#include <cerrno>
 namespace tntmq
 {
     class SqliteHelper
@@ -139,7 +143,7 @@ namespace tntmq
         }
         size_t size()
         {
-            if (exists)
+            if (exists())
             {
                 struct stat st;
                 stat(_filename.c_str(), &st);
@@ -151,9 +155,14 @@ namespace tntmq
 
         bool read(std::string &body)
         {
+            //获取文件大小，根据文件大小调整body大小
+            size_t size = this->size();
+            body.resize(size);
+            return read(&body[0], 0, size);
         }
         bool read(char *body, size_t offset, size_t len)
         {
+            // 打开文件
             std::ifstream is(_filename, std::ios::binary);
 
             if (is.is_open() == false)
@@ -161,40 +170,115 @@ namespace tntmq
                 LOG(LogLevel::ERROR, "打开文件%s失败", _filename.c_str());
                 return false;
             }
+            // 调转文件读写位置
             is.seekg(offset, std::ios::beg);
+            // 3.读取文件内容
             is.read(body, len);
-            if(is.good() == false)
+            if (is.good() == false)
             {
                 LOG(LogLevel::ERROR, "读取文件%s失败", _filename.c_str());
                 is.close();
                 return false;
             }
+            // 4.关闭文件
             is.close();
             return true;
         }
 
         bool write(const std::string &body)
         {
-            size_t len = body.size();
+            return write(body.c_str(), 0, body.size());
+        }
+        bool write(const char *body, size_t offset, size_t len)
+        {
+            // 打开文件
+            std::fstream fs(_filename, std::ios::binary | std::ios::in | std::ios::out);
+            if (fs.is_open() == false)
+            {
+                LOG(LogLevel::ERROR, "打开文件%s失败", _filename.c_str());
+                return false;
+            }
+            // 调转文件读写位置(必须具备文件读权限)
+            fs.seekp(offset, std::ios::beg);
+            fs.write(body, len);
+            if (fs.good() == false)
+            {
+                LOG(LogLevel::ERROR, "写入文件%s失败", _filename.c_str());
+                fs.close();
+                return false;
+            }
+            fs.close();
+            return true;
+        }
+        bool rename(const std::string &newname)
+        {
+            return (::rename(_filename.c_str(), newname.c_str())) == 0;
+        }
+        static bool createFile(const std::string &filename)
+        {
+            std::fstream ofs(filename, std::ios::binary | std::ios::out);
+            if (ofs.is_open() == false)
+            {
+                LOG(LogLevel::ERROR, "创建文件%s失败", filename.c_str());
+                return false;
+            }
+            else
+            {
+                ofs.close();
+                return true;
+            }
+        }
 
-        }
-        bool write(const std::string &body, size_t offset, size_t len)
+       static bool removeFile(const std::string &filename)
         {
+            if (::remove(filename.c_str()) == 0)
+                return true;
+            LOG(LogLevel::ERROR, "removeFile %s failed: %s", filename.c_str(), strerror(errno));
+            return false;
         }
-        bool createFile()
+
+        static bool createDirectory(const std::string &path)
         {
+            // 多级路径创建需要从第一个父级开始创建
+            size_t pos = 0, idx = 0;
+            while (idx < path.size())
+            {
+                pos = path.find('/', idx);
+                if (pos == std::string ::npos)
+                {
+                    return (mkdir(path.c_str(), 0775)) == 0;
+                }
+                else
+                {
+                    std::string subpath = path.substr(0, pos);
+                    int ret = mkdir(subpath.c_str(), 0775);
+                    if (ret != 0 && errno != EEXIST)
+                    {
+                        LOG(LogLevel::ERROR, "创建目录%s失败:%s", subpath.c_str(), strerror(errno));
+                        return false;
+                    }
+                    idx = pos + 1;
+                }
+            }
+            return true;
         }
-        bool removeFile()
+        static bool removeDirectory(const std::string &path)
         {
+            std::string cmd = "rm -rf" + path;
+            return system(cmd.c_str()) != -1;
         }
-        bool createDirectory()
-        {
-        }
-        bool removeDirectory()
-        {
-        }
+
         static std::string parentDirectory(const std::string &filename)
         {
+            size_t pos = filename.rfind('/');
+            if (pos != std::string::npos)
+            {
+                return filename.substr(0, pos);
+            }
+            else
+            {
+                return "./";
+            }
         }
 
     private:

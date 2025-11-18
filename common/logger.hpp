@@ -1,5 +1,5 @@
-#ifndef __M_LOG__
-#define __M_LOG__
+#ifndef __M_LOG_H__
+#define __M_LOG_H__
 #include <iostream>
 #include <ctime>
 #include <string>
