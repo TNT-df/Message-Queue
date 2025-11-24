@@ -1,5 +1,4 @@
-#include "../common/helper.hpp"
-#include "../common/logger.hpp"
+#include "../common/mq_helper.hpp"
 #include <gtest/gtest.h>
 
 int main(int argc, char **argv)

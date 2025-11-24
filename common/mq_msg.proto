@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package tntmq;
+
+
+enum ExchangeType {
+  DIRECT = 0;//直接交换
+  FANOUT = 1;//广播交换
+  TOPIC = 2;//主题交换
+};
+
+enum DeliveryMode {
+  UNDURABLE = 0;//非持久化
+  DURABLE = 1;//持久化
+};
+
+message BasicProperties {
+  string id = 1;
+  DeliveryMode delivery_mode = 2;
+  string routing_key = 3;
+
+};
+
+message Message {
+  message Payload {
+    BasicProperties properties = 1;
+    string body = 2;
+  };
+  Payload payload = 1;
+  uint32 offset = 2;
+  uint32 length = 3;
+  string valid = 4;
+};

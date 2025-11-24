@@ -8,7 +8,7 @@
  */
 #ifndef __M_HELPER__
 #define __M_HELPER__
-#include "logger.hpp"
+#include "mq_logger.hpp"
 #include <iostream>
 #include <sqlite3.h>
 #include <vector>
@@ -155,7 +155,7 @@ namespace tntmq
 
         bool read(std::string &body)
         {
-            //获取文件大小，根据文件大小调整body大小
+            // 获取文件大小，根据文件大小调整body大小
             size_t size = this->size();
             body.resize(size);
             return read(&body[0], 0, size);
@@ -229,7 +229,7 @@ namespace tntmq
             }
         }
 
-       static bool removeFile(const std::string &filename)
+        static bool removeFile(const std::string &filename)
         {
             if (::remove(filename.c_str()) == 0)
                 return true;
