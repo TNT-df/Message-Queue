@@ -39,6 +39,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORIT
 PROTOBUF_CONSTEXPR Message_Payload::Message_Payload(
     ::_pbi::ConstantInitialized): _impl_{
     /*decltype(_impl_.body_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
+  , /*decltype(_impl_.valid_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
   , /*decltype(_impl_.properties_)*/nullptr
   , /*decltype(_impl_._cached_size_)*/{}} {}
 struct Message_PayloadDefaultTypeInternal {
@@ -52,8 +53,7 @@ struct Message_PayloadDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 Message_PayloadDefaultTypeInternal _Message_Payload_default_instance_;
 PROTOBUF_CONSTEXPR Message::Message(
     ::_pbi::ConstantInitialized): _impl_{
-    /*decltype(_impl_.valid_)*/{&::_pbi::fixed_address_empty_string, ::_pbi::ConstantInitialized{}}
-  , /*decltype(_impl_.payload_)*/nullptr
+    /*decltype(_impl_.payload_)*/nullptr
   , /*decltype(_impl_.offset_)*/0u
   , /*decltype(_impl_.length_)*/0u
   , /*decltype(_impl_._cached_size_)*/{}} {}
@@ -89,6 +89,7 @@ const uint32_t TableStruct_mq_5fmsg_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   ~0u,  // no _inlined_string_donated_
   PROTOBUF_FIELD_OFFSET(::tntmq::Message_Payload, _impl_.properties_),
   PROTOBUF_FIELD_OFFSET(::tntmq::Message_Payload, _impl_.body_),
+  PROTOBUF_FIELD_OFFSET(::tntmq::Message_Payload, _impl_.valid_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::tntmq::Message, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -98,12 +99,11 @@ const uint32_t TableStruct_mq_5fmsg_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE
   PROTOBUF_FIELD_OFFSET(::tntmq::Message, _impl_.payload_),
   PROTOBUF_FIELD_OFFSET(::tntmq::Message, _impl_.offset_),
   PROTOBUF_FIELD_OFFSET(::tntmq::Message, _impl_.length_),
-  PROTOBUF_FIELD_OFFSET(::tntmq::Message, _impl_.valid_),
 };
 static const ::_pbi::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, -1, sizeof(::tntmq::BasicProperties)},
   { 9, -1, -1, sizeof(::tntmq::Message_Payload)},
-  { 17, -1, -1, sizeof(::tntmq::Message)},
+  { 18, -1, -1, sizeof(::tntmq::Message)},
 };
 
 static const ::_pb::Message* const file_default_instances[] = {
@@ -118,9 +118,9 @@ const char descriptor_table_protodef_mq_5fmsg_2eproto[] PROTOBUF_SECTION_VARIABL
   "tmq.DeliveryMode\022\023\n\013routing_key\030\003 \001(\t\"\246\001"
   "\n\007Message\022\'\n\007payload\030\001 \001(\0132\026.tntmq.Messa"
   "ge.Payload\022\016\n\006offset\030\002 \001(\r\022\016\n\006length\030\003 \001"
-  "(\r\022\r\n\005valid\030\004 \001(\t\032C\n\007Payload\022*\n\nproperti"
-  "es\030\001 \001(\0132\026.tntmq.BasicProperties\022\014\n\004body"
-  "\030\002 \001(\t*1\n\014ExchangeType\022\n\n\006DIRECT\020\000\022\n\n\006FA"
+  "(\r\032R\n\007Payload\022*\n\nproperties\030\001 \001(\0132\026.tntm"
+  "q.BasicProperties\022\014\n\004body\030\002 \001(\t\022\r\n\005valid"
+  "\030\003 \001(\t*1\n\014ExchangeType\022\n\n\006DIRECT\020\000\022\n\n\006FA"
   "NOUT\020\001\022\t\n\005TOPIC\020\002**\n\014DeliveryMode\022\r\n\tUND"
   "URABLE\020\000\022\013\n\007DURABLE\020\001b\006proto3"
   ;
@@ -475,6 +475,7 @@ Message_Payload::Message_Payload(const Message_Payload& from)
   Message_Payload* const _this = this; (void)_this;
   new (&_impl_) Impl_{
       decltype(_impl_.body_){}
+    , decltype(_impl_.valid_){}
     , decltype(_impl_.properties_){nullptr}
     , /*decltype(_impl_._cached_size_)*/{}};
 
@@ -485,6 +486,14 @@ Message_Payload::Message_Payload(const Message_Payload& from)
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
   if (!from._internal_body().empty()) {
     _this->_impl_.body_.Set(from._internal_body(), 
+      _this->GetArenaForAllocation());
+  }
+  _impl_.valid_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.valid_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  if (!from._internal_valid().empty()) {
+    _this->_impl_.valid_.Set(from._internal_valid(), 
       _this->GetArenaForAllocation());
   }
   if (from._internal_has_properties()) {
@@ -499,12 +508,17 @@ inline void Message_Payload::SharedCtor(
   (void)is_message_owned;
   new (&_impl_) Impl_{
       decltype(_impl_.body_){}
+    , decltype(_impl_.valid_){}
     , decltype(_impl_.properties_){nullptr}
     , /*decltype(_impl_._cached_size_)*/{}
   };
   _impl_.body_.InitDefault();
   #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
     _impl_.body_.Set("", GetArenaForAllocation());
+  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  _impl_.valid_.InitDefault();
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.valid_.Set("", GetArenaForAllocation());
   #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
@@ -520,6 +534,7 @@ Message_Payload::~Message_Payload() {
 inline void Message_Payload::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
   _impl_.body_.Destroy();
+  _impl_.valid_.Destroy();
   if (this != internal_default_instance()) delete _impl_.properties_;
 }
 
@@ -534,6 +549,7 @@ void Message_Payload::Clear() {
   (void) cached_has_bits;
 
   _impl_.body_.ClearToEmpty();
+  _impl_.valid_.ClearToEmpty();
   if (GetArenaForAllocation() == nullptr && _impl_.properties_ != nullptr) {
     delete _impl_.properties_;
   }
@@ -562,6 +578,16 @@ const char* Message_Payload::_InternalParse(const char* ptr, ::_pbi::ParseContex
           ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
           CHK_(::_pbi::VerifyUTF8(str, "tntmq.Message.Payload.body"));
+        } else
+          goto handle_unusual;
+        continue;
+      // string valid = 3;
+      case 3:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 26)) {
+          auto str = _internal_mutable_valid();
+          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
+          CHK_(ptr);
+          CHK_(::_pbi::VerifyUTF8(str, "tntmq.Message.Payload.valid"));
         } else
           goto handle_unusual;
         continue;
@@ -611,6 +637,16 @@ uint8_t* Message_Payload::_InternalSerialize(
         2, this->_internal_body(), target);
   }
 
+  // string valid = 3;
+  if (!this->_internal_valid().empty()) {
+    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
+      this->_internal_valid().data(), static_cast<int>(this->_internal_valid().length()),
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
+      "tntmq.Message.Payload.valid");
+    target = stream->WriteStringMaybeAliased(
+        3, this->_internal_valid(), target);
+  }
+
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -632,6 +668,13 @@ size_t Message_Payload::ByteSizeLong() const {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
         this->_internal_body());
+  }
+
+  // string valid = 3;
+  if (!this->_internal_valid().empty()) {
+    total_size += 1 +
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
+        this->_internal_valid());
   }
 
   // .tntmq.BasicProperties properties = 1;
@@ -662,6 +705,9 @@ void Message_Payload::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const 
   if (!from._internal_body().empty()) {
     _this->_internal_set_body(from._internal_body());
   }
+  if (!from._internal_valid().empty()) {
+    _this->_internal_set_valid(from._internal_valid());
+  }
   if (from._internal_has_properties()) {
     _this->_internal_mutable_properties()->::tntmq::BasicProperties::MergeFrom(
         from._internal_properties());
@@ -688,6 +734,10 @@ void Message_Payload::InternalSwap(Message_Payload* other) {
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
       &_impl_.body_, lhs_arena,
       &other->_impl_.body_, rhs_arena
+  );
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
+      &_impl_.valid_, lhs_arena,
+      &other->_impl_.valid_, rhs_arena
   );
   swap(_impl_.properties_, other->_impl_.properties_);
 }
@@ -719,21 +769,12 @@ Message::Message(const Message& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   Message* const _this = this; (void)_this;
   new (&_impl_) Impl_{
-      decltype(_impl_.valid_){}
-    , decltype(_impl_.payload_){nullptr}
+      decltype(_impl_.payload_){nullptr}
     , decltype(_impl_.offset_){}
     , decltype(_impl_.length_){}
     , /*decltype(_impl_._cached_size_)*/{}};
 
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  _impl_.valid_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    _impl_.valid_.Set("", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_valid().empty()) {
-    _this->_impl_.valid_.Set(from._internal_valid(), 
-      _this->GetArenaForAllocation());
-  }
   if (from._internal_has_payload()) {
     _this->_impl_.payload_ = new ::tntmq::Message_Payload(*from._impl_.payload_);
   }
@@ -748,16 +789,11 @@ inline void Message::SharedCtor(
   (void)arena;
   (void)is_message_owned;
   new (&_impl_) Impl_{
-      decltype(_impl_.valid_){}
-    , decltype(_impl_.payload_){nullptr}
+      decltype(_impl_.payload_){nullptr}
     , decltype(_impl_.offset_){0u}
     , decltype(_impl_.length_){0u}
     , /*decltype(_impl_._cached_size_)*/{}
   };
-  _impl_.valid_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    _impl_.valid_.Set("", GetArenaForAllocation());
-  #endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
 
 Message::~Message() {
@@ -771,7 +807,6 @@ Message::~Message() {
 
 inline void Message::SharedDtor() {
   GOOGLE_DCHECK(GetArenaForAllocation() == nullptr);
-  _impl_.valid_.Destroy();
   if (this != internal_default_instance()) delete _impl_.payload_;
 }
 
@@ -785,7 +820,6 @@ void Message::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  _impl_.valid_.ClearToEmpty();
   if (GetArenaForAllocation() == nullptr && _impl_.payload_ != nullptr) {
     delete _impl_.payload_;
   }
@@ -823,16 +857,6 @@ const char* Message::_InternalParse(const char* ptr, ::_pbi::ParseContext* ctx) 
         if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 24)) {
           _impl_.length_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint32(&ptr);
           CHK_(ptr);
-        } else
-          goto handle_unusual;
-        continue;
-      // string valid = 4;
-      case 4:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<uint8_t>(tag) == 34)) {
-          auto str = _internal_mutable_valid();
-          ptr = ::_pbi::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(ptr);
-          CHK_(::_pbi::VerifyUTF8(str, "tntmq.Message.valid"));
         } else
           goto handle_unusual;
         continue;
@@ -884,16 +908,6 @@ uint8_t* Message::_InternalSerialize(
     target = ::_pbi::WireFormatLite::WriteUInt32ToArray(3, this->_internal_length(), target);
   }
 
-  // string valid = 4;
-  if (!this->_internal_valid().empty()) {
-    ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
-      this->_internal_valid().data(), static_cast<int>(this->_internal_valid().length()),
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "tntmq.Message.valid");
-    target = stream->WriteStringMaybeAliased(
-        4, this->_internal_valid(), target);
-  }
-
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
@@ -909,13 +923,6 @@ size_t Message::ByteSizeLong() const {
   uint32_t cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
-
-  // string valid = 4;
-  if (!this->_internal_valid().empty()) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::StringSize(
-        this->_internal_valid());
-  }
 
   // .tntmq.Message.Payload payload = 1;
   if (this->_internal_has_payload()) {
@@ -952,9 +959,6 @@ void Message::MergeImpl(::PROTOBUF_NAMESPACE_ID::Message& to_msg, const ::PROTOB
   uint32_t cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (!from._internal_valid().empty()) {
-    _this->_internal_set_valid(from._internal_valid());
-  }
   if (from._internal_has_payload()) {
     _this->_internal_mutable_payload()->::tntmq::Message_Payload::MergeFrom(
         from._internal_payload());
@@ -981,13 +985,7 @@ bool Message::IsInitialized() const {
 
 void Message::InternalSwap(Message* other) {
   using std::swap;
-  auto* lhs_arena = GetArenaForAllocation();
-  auto* rhs_arena = other->GetArenaForAllocation();
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::InternalSwap(
-      &_impl_.valid_, lhs_arena,
-      &other->_impl_.valid_, rhs_arena
-  );
   ::PROTOBUF_NAMESPACE_ID::internal::memswap<
       PROTOBUF_FIELD_OFFSET(Message, _impl_.length_)
       + sizeof(Message::_impl_.length_)

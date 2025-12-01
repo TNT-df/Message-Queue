@@ -6,28 +6,22 @@
 #include <memory>
 #include <sstream>
 #include <unordered_map>
+
 namespace tntmq
 {
-    // 定义交换机类
-    struct Exchange
+    struct MsgQueue
     {
-        using ptr = std::shared_ptr<Exchange>;
-        // 名称
+        using ptr = std::shared_ptr<MsgQueue>;
         std::string name;
-        // 交换级类型
-        ExchangeType type;
-        // 是否持久化
         bool durable;
-        // 是否自动删除标志
+        bool exclusive;
         bool auto_delete;
-        // 其他参数
         std::unordered_map<std::string, std::string> args;
 
-        Exchange()
-        {
-        }
-        Exchange(const std::string &ename, ExchangeType etype, bool edurable, bool auto_delete_flag, const std::unordered_map<std::string, std::string> &eargs)
-            : name(ename), type(etype), durable(edurable), auto_delete(auto_delete_flag), args(eargs) {}
+        MsgQueue() {}
+        MsgQueue(const std::string &qname, bool qdurable, bool qexclusive, bool qauto_delete, const std::unordered_map<std::string, std::string> &qargs)
+            : name(qname), durable(qdurable), exclusive(qexclusive), auto_delete(qauto_delete), args(qargs) {}
+
         void setArgs(const std::string &str)
         // 存储键值对，在存储数据库的时候，会组织一个格式字符串进行存储 key=val&key=val 将内容存储到成员中
         {
@@ -51,22 +45,25 @@ namespace tntmq
             // return deterministic string: sort keys
             std::vector<std::string> keys;
             keys.reserve(this->args.size());
-            for (const auto &kv : this->args) keys.push_back(kv.first);
+            for (const auto &kv : this->args)
+                keys.push_back(kv.first);
             std::sort(keys.begin(), keys.end());
             std::string res;
             for (const auto &k : keys)
             {
-                if (!res.empty()) res += "&";
+                if (!res.empty())
+                    res += "&";
                 res += k + "=" + this->args.at(k);
             }
             return res;
         }
     };
+
     // 定义交换机数据持久化管理类 --  存储在sqlit数据库中
-    class ExchangeMapper
+    class MsgQueueMapper
     {
     public:
-        ExchangeMapper(const std::string &dbfile) : _sqlite_helper(dbfile)
+        MsgQueueMapper(const std::string &dbfile) : _sqlite_helper(dbfile)
         {
             std::string path = tntmq::FileHelper::parentDirectory(dbfile);
             if (!tntmq::FileHelper::createDirectory(path))
@@ -79,47 +76,43 @@ namespace tntmq
 
         void createTable()
         {
-#define CREATE_SQL "CREATE TABLE IF NOT EXISTS exchange_table \
-            (name VARCHAR(32) PRIMARY KEY, type INTEGER, durable INTEGER, auto_delete INTEGER, args varchar(128));"
+#define CREATE_SQL "CREATE TABLE IF NOT EXISTS msgQueue_table \
+            (name VARCHAR(32) PRIMARY KEY,  durable INTEGER, exclusive INTEGER ,auto_delete INTEGER, args varchar(128));"
             bool ret = _sqlite_helper.exec(CREATE_SQL, nullptr, nullptr);
             if (ret == false)
             {
-                LOG(LogLevel::ERROR, "创建交换机表失败");
+                LOG(LogLevel::ERROR, "创建消息队列表失败");
                 abort();
             }
         }
 
         void removeTable()
         {
-    #define DROP_TABLE "drop table if exists exchange_table;"
+#define DROP_TABLE "drop table if exists msgQueue_table;"
             bool ret = _sqlite_helper.exec(DROP_TABLE, nullptr, nullptr);
             if (ret == false)
             {
-                LOG(LogLevel::ERROR, "删除交换机表失败");
+                LOG(LogLevel::ERROR, "删除消息队列表失败");
                 abort();
             }
         }
 
-        void insert(Exchange::ptr &exchange)
+        bool insert(MsgQueue::ptr &msgQueue)
         {
             std::stringstream ss;
             // specify columns explicitly and include name
-            ss << "INSERT INTO exchange_table (name, type, durable, auto_delete, args) VALUES (";
-            ss << "'" << exchange->name << "', ";
-            ss << exchange->type << ", ";
-            ss << (exchange->durable ? 1 : 0) << ", ";
-            ss << (exchange->auto_delete ? 1 : 0) << ", ";
-            ss << "'" << exchange->getArgs() << "');";
-            bool ret = _sqlite_helper.exec(ss.str(), nullptr, nullptr);
-            if (ret == false)
-            {
-                return;
-            }
+            ss << "INSERT INTO msgQueue_table (name, durable, exclusive,auto_delete, args) VALUES (";
+            ss << "'" << msgQueue->name << "', ";
+            ss << (msgQueue->durable ? 1 : 0) << ", ";
+            ss << (msgQueue->exclusive ? 1 : 0) << ", ";
+            ss << (msgQueue->auto_delete ? 1 : 0) << ", ";
+            ss << "'" << msgQueue->getArgs() << "');";
+            return _sqlite_helper.exec(ss.str(), nullptr, nullptr);
         }
         void remove(const std::string &name)
         {
             std::stringstream ss;
-            ss << "delete from exchange_table where name='" << name << "';";
+            ss << "delete from msgQueue_table where name='" << name << "';";
             bool ret = _sqlite_helper.exec(ss.str(), nullptr, nullptr);
             if (ret == false)
             {
@@ -127,12 +120,12 @@ namespace tntmq
             }
         }
 
-        using ExchangeMap = std::unordered_map<std::string, Exchange::ptr>;
-        ExchangeMap recovery()
+        using MsgQueueMap = std::unordered_map<std::string, MsgQueue::ptr>;
+        MsgQueueMap recovery()
         {
-            std::unordered_map<std::string, Exchange::ptr> result;
+            MsgQueueMap result;
             std::stringstream ss;
-            ss << "select name, type, durable, auto_delete, args from exchange_table;";
+            ss << "select name, durable, exclusive,auto_delete, args from msgQueue_table;";
             bool ret = _sqlite_helper.exec(ss.str(), selectCallBack, &result);
             return result;
         }
@@ -142,20 +135,13 @@ namespace tntmq
         {
             if (!arg || !row)
                 return 1;
-            ExchangeMap *result = static_cast<ExchangeMap *>(arg);
+            MsgQueueMap *result = static_cast<MsgQueueMap *>(arg);
             if (numcol < 5)
                 return 1;
             std::string name = row[0] ? row[0] : std::string();
-            ExchangeType type = ExchangeType::DIRECT;
-            try
-            {
-                if (row[1])
-                    type = static_cast<ExchangeType>(std::stoi(row[1]));
-            }
-            catch (...)
-            {
-            }
-            bool durable = row[2] ? (std::stoi(row[2]) != 0) : false;
+
+            bool durable = row[1] ? (std::stoi(row[2]) != 0) : false;
+            bool exclusive = row[2] ? (std::stoi(row[2]) != 0) : false;
             bool auto_del = row[3] ? (std::stoi(row[3]) != 0) : false;
             std::unordered_map<std::string, std::string> parsedArgs;
             if (row[4])
@@ -169,8 +155,8 @@ namespace tntmq
                         parsedArgs.emplace(kv.substr(0, pos), kv.substr(pos + 1));
                 }
             }
-            auto exp = std::make_shared<Exchange>(name, type, durable, auto_del, parsedArgs);
-            result->insert(std::make_pair(exp->name, exp));
+            auto msg = std::make_shared<MsgQueue>(name, durable, exclusive, auto_del, parsedArgs);
+            result->insert(std::make_pair(msg->name, msg));
             return 0;
         }
 
@@ -179,83 +165,84 @@ namespace tntmq
     };
 
     // 定义交换机数据内存管理类
-    class ExchangeManager
+    class MsgQueueManager
     {
     public:
-        using ptr = std::shared_ptr<ExchangeManager>;
-        ExchangeManager(const std::string &dbfile) : _mapper(dbfile)
+        using ptr = std::shared_ptr<MsgQueueManager>;
+        MsgQueueManager(const std::string &dbfile) : _mapper(dbfile)
         {
 
-            _exchanges = _mapper.recovery();
+            _msg_queues = _mapper.recovery();
         }
         // 声明交换机
-        void declareExchange(const std::string &name, ExchangeType type, bool durable, bool auto_delete, const std::unordered_map<std::string, std::string> &eargs)
+        bool declareMsgQueue(const std::string &name, bool durable, bool exclusive, bool auto_delete, const std::unordered_map<std::string, std::string> &eargs)
         {
             std::unique_lock<std::mutex> lock(_mutex);
-            auto it = _exchanges.find(name);
-            if (it != _exchanges.end())
+            auto it = _msg_queues.find(name);
+            if (it != _msg_queues.end())
             {
-                // 交换机已经存在，直接返回不需要新增
-                return;
+                return true;
             }
-            auto exp = std::make_shared<Exchange>(name, type, durable, auto_delete, eargs);
-            // always insert the newly created exchange into in-memory map
-            _exchanges.emplace(name, exp);
+            auto exp = std::make_shared<MsgQueue>(name, durable, exclusive, auto_delete, eargs);
+            _msg_queues.emplace(name, exp);
             if (durable == true)
             {
-                _mapper.insert(exp);
+                return _mapper.insert(exp);
             }
+            return true;
         }
         // 删除交换机
-        void deleteExchange(const std::string &name)
+        void deleteMsgQueue(const std::string &name)
         {
             std::unique_lock<std::mutex> lock(_mutex);
-            auto it = _exchanges.find(name);
-            if (it == _exchanges.end())
+            auto it = _msg_queues.find(name);
+            if (it == _msg_queues.end())
             {
-                // 交换机不存在，直接返回
                 return;
             }
             if (it->second->durable == true)
             {
                 _mapper.remove(name);
             }
-            _exchanges.erase(name);
+            _msg_queues.erase(name);
         }
-        // 获取指定交换机对象
-        Exchange::ptr selectExchange(const std::string &name)
+        MsgQueue::ptr selectMsgQueue(const std::string &name)
         {
             std::unique_lock<std::mutex> lock(_mutex);
-            auto it = _exchanges.find(name);
-            if (it != _exchanges.end())
+            auto it = _msg_queues.find(name);
+            if (it != _msg_queues.end())
             {
                 return it->second;
             }
             return nullptr;
         }
-        // 判断交换机是否存在
+        const std::unordered_map<std::string, MsgQueue::ptr> allQueues()
+        {
+            std::unique_lock<std::mutex> lock(_mutex);
+            return _msg_queues;
+        }
         bool exists(const std::string &name)
         {
             std::unique_lock<std::mutex> lock(_mutex);
-            auto it = _exchanges.find(name);
-            return it != _exchanges.end();
+            auto it = _msg_queues.find(name);
+            return it != _msg_queues.end();
         }
         size_t size()
         {
             std::unique_lock<std::mutex> lock(_mutex);
-            return _exchanges.size();
+            return _msg_queues.size();
         }
         // 清理所有交换机数据
         void clear()
         {
             std::unique_lock<std::mutex> lock(_mutex);
             _mapper.removeTable();
-            _exchanges.clear();
+            _msg_queues.clear();
         }
 
     private:
         std::mutex _mutex;
-        ExchangeMapper _mapper;
-        std::unordered_map<std::string, Exchange::ptr> _exchanges;
+        MsgQueueMapper _mapper;
+        std::unordered_map<std::string, MsgQueue::ptr> _msg_queues;
     };
-}  
+}
