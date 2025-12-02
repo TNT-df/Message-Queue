@@ -40,6 +40,6 @@ namespace tntmq
         strftime(s, sizeof(s) - 1, "%Y-%m-%d %H:%M:%S", tm);                                                     \
         printf("[%s] [%s] [%s:%d] " format "\n", s, LogLevelToString(level), __FILE__, __LINE__, ##__VA_ARGS__); \
     }
-}
 
+}
 #endif
