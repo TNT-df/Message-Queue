@@ -1,3 +1,5 @@
+#ifndef _M_EXCHANGE_H__
+#define _M_EXCHANGE_H__
 #include "../common/mq_logger.hpp"
 #include "../common/mq_helper.hpp"
 #include "../common/mq_msg.pb.h"
@@ -259,3 +261,5 @@ namespace tntmq
         std::unordered_map<std::string, Exchange::ptr> _exchanges;
     };
 }  
+
+#endif
