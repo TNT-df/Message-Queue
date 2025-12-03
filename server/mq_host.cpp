@@ -8,10 +8,11 @@ namespace tntmq
     class VirtualHost
     {
     public:
-        VirtualHost(const std::string &basedir, const std::string &dbfile) : _emp(std::make_shared<ExchangeManager>(dbfile)),
-                                                                             _mqm(std::make_shared<MsgQueueManager>(dbfile)),
-                                                                             _bmp(std::make_shared<BindingManager>(dbfile)),
-                                                                             _mmp(std::make_shared<MessageManager>(basedir))
+        VirtualHost(const std::string &hname, const std::string &basedir, const std::string &dbfile) : _host_name(hname),
+                                                                                                       _emp(std::make_shared<ExchangeManager>(dbfile)),
+                                                                                                       _mqm(std::make_shared<MsgQueueManager>(dbfile)),
+                                                                                                       _bmp(std::make_shared<BindingManager>(dbfile)),
+                                                                                                       _mmp(std::make_shared<MessageManager>(basedir))
         {
             // 获取所有队列信息，通过队列名称恢复历史消息
             MsgQueueMapper::MsgQueueMap qm = _mqm->allQueues();
@@ -22,12 +23,26 @@ namespace tntmq
         }
         bool declareExchange(const std::string &name,
                              ExchangeType type, bool durable, bool auto_delete,
-                             std::unordered_map<std::string, std::string> &args);
+                             std::unordered_map<std::string, std::string> &args)
+        {
+            _emp->declareExchange(name, type, durable, auto_delete, args);
+        }
 
-        void deleteExchange(const std::string &name);
+        void deleteExchange(const std::string &name)
+        {
+            // 删除交换机需要将相关的绑定信息也删掉
+            _bmp->removeExchangeBindings(name);
+            _emp->deleteExchange(name);
+        }
 
         bool declareQueue(const std::string &qname, bool qdurable, bool qexclusive, bool qauto_delete,
-                          std::unordered_map<std::string, std::string> &args);
+                          std::unordered_map<std::string, std::string> &args)
+        {
+            // 初始化队列消息句柄（小心存储管理）
+            // 队列的创建
+            _mmp->initQueueMessage(qname);
+            return _mqm->declareMsgQueue(qname, qdurable, qexclusive, qauto_delete, args);
+        }
 
         bool deleteQueue(const std::string &name);
 
