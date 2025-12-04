@@ -203,7 +203,7 @@ namespace tntmq
             _vaild_count = _total_count = _messages.size();
         }
 
-        bool insert(const BasicProperties *bp, const std::string &body, DeliveryMode delivery_mode)
+        bool insert(const BasicProperties *bp, const std::string &body, bool queue_is_durable)
         {
 
             // 1、构造消息对象
@@ -211,14 +211,16 @@ namespace tntmq
             msg->mutable_payload()->set_body(body);
             if (bp != nullptr)
             {
+                DeliveryMode mode = queue_is_durable ? bp->delivery_mode() : DeliveryMode::UNDURABLE;
                 msg->mutable_payload()->mutable_properties()->set_id(bp->id());
-                msg->mutable_payload()->mutable_properties()->set_delivery_mode(bp->delivery_mode());
+                msg->mutable_payload()->mutable_properties()->set_delivery_mode(mode);
                 msg->mutable_payload()->mutable_properties()->set_routing_key(bp->routing_key());
             }
             else
             {
+                DeliveryMode mode = queue_is_durable ? DeliveryMode::DURABLE : DeliveryMode::UNDURABLE;
                 msg->mutable_payload()->mutable_properties()->set_id(UUIDHelper::generateUUID());
-                msg->mutable_payload()->mutable_properties()->set_delivery_mode(delivery_mode);
+                msg->mutable_payload()->mutable_properties()->set_delivery_mode(mode);
                 msg->mutable_payload()->mutable_properties()->set_routing_key("");
             }
             // 2、判断是否需要持久化
@@ -433,7 +435,7 @@ namespace tntmq
             return qmp->front();
         }
 
-        bool insert(const std::string &qname, BasicProperties *bp, const std::string &body, DeliveryMode mode)
+        bool insert(const std::string &qname, BasicProperties *bp, const std::string &body, bool queue_is_durable)
         {
             QueueMessage::ptr qmp;
             {
@@ -446,7 +448,7 @@ namespace tntmq
                 }
                 qmp = it->second;
             }
-            return qmp->insert(bp, body, mode);
+            return qmp->insert(bp, body, queue_is_durable);
         }
 
         void ack(const std::string &qname, const std::string msg_id)

@@ -152,7 +152,7 @@ namespace tntmq
             return true;
         }
 
-        void unbind(const std::string &ex_name, const std::string &q_name)
+        bool unbind(const std::string &ex_name, const std::string &q_name)
         {
             std::unique_lock<std::mutex> lock(_mutex);
             auto it_ex = _bindings.find(ex_name);
@@ -166,10 +166,12 @@ namespace tntmq
                     _mapper.remove(ex_name, q_name);
                     if (mq_map.empty())
                     {
-                        _bindings.erase(it_ex);
+                         _bindings.erase(it_ex);
+                         return true;
                     }
                 }
             }
+            return false;
         }
 
         void removeExchangeBindings(const std::string &ex_name)

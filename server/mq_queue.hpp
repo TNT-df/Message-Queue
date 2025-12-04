@@ -195,19 +195,19 @@ namespace tntmq
             return true;
         }
         // 删除交换机
-        void deleteMsgQueue(const std::string &name)
+        bool deleteMsgQueue(const std::string &name)
         {
             std::unique_lock<std::mutex> lock(_mutex);
             auto it = _msg_queues.find(name);
             if (it == _msg_queues.end())
             {
-                return;
+                return true;
             }
             if (it->second->durable == true)
             {
                 _mapper.remove(name);
             }
-            _msg_queues.erase(name);
+            return _msg_queues.erase(name);
         }
         MsgQueue::ptr selectMsgQueue(const std::string &name)
         {
