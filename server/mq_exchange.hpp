@@ -3,6 +3,7 @@
 #include "../common/mq_logger.hpp"
 #include "../common/mq_helper.hpp"
 #include "../common/mq_msg.pb.h"
+#include <google/protobuf/map.h>
 #include <iostream>
 #include <mutex>
 #include <memory>
@@ -23,12 +24,12 @@ namespace tntmq
         // 是否自动删除标志
         bool auto_delete;
         // 其他参数
-        std::unordered_map<std::string, std::string> args;
+        google::protobuf::Map<std::string, std::string> args;
 
         Exchange()
         {
         }
-        Exchange(const std::string &ename, ExchangeType etype, bool edurable, bool auto_delete_flag, const std::unordered_map<std::string, std::string> &eargs)
+        Exchange(const std::string &ename, ExchangeType etype, bool edurable, bool auto_delete_flag, const google::protobuf::Map<std::string, std::string> &eargs)
             : name(ename), type(etype), durable(edurable), auto_delete(auto_delete_flag), args(eargs) {}
         void setArgs(const std::string &str)
         // 存储键值对，在存储数据库的时候，会组织一个格式字符串进行存储 key=val&key=val 将内容存储到成员中
@@ -44,7 +45,7 @@ namespace tntmq
                 {
                     std::string key = kv.substr(0, pos);
                     std::string val = kv.substr(pos + 1);
-                    this->args.insert(std::make_pair(key, val));
+                    args[key] = val;
                 }
             }
         }
@@ -53,12 +54,14 @@ namespace tntmq
             // return deterministic string: sort keys
             std::vector<std::string> keys;
             keys.reserve(this->args.size());
-            for (const auto &kv : this->args) keys.push_back(kv.first);
+            for (const auto &kv : this->args)
+                keys.push_back(kv.first);
             std::sort(keys.begin(), keys.end());
             std::string res;
             for (const auto &k : keys)
             {
-                if (!res.empty()) res += "&";
+                if (!res.empty())
+                    res += "&";
                 res += k + "=" + this->args.at(k);
             }
             return res;
@@ -93,7 +96,7 @@ namespace tntmq
 
         void removeTable()
         {
-    #define DROP_TABLE "drop table if exists exchange_table;"
+#define DROP_TABLE "drop table if exists exchange_table;"
             bool ret = _sqlite_helper.exec(DROP_TABLE, nullptr, nullptr);
             if (ret == false)
             {
@@ -191,7 +194,7 @@ namespace tntmq
             _exchanges = _mapper.recovery();
         }
         // 声明交换机
-        void declareExchange(const std::string &name, ExchangeType type, bool durable, bool auto_delete, const std::unordered_map<std::string, std::string> &eargs)
+        void declareExchange(const std::string &name, ExchangeType type, bool durable, bool auto_delete, const google::protobuf::Map<std::string, std::string> &eargs)
         {
             std::unique_lock<std::mutex> lock(_mutex);
             auto it = _exchanges.find(name);
@@ -260,6 +263,6 @@ namespace tntmq
         ExchangeMapper _mapper;
         std::unordered_map<std::string, Exchange::ptr> _exchanges;
     };
-}  
+}
 
 #endif

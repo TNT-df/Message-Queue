@@ -8,6 +8,7 @@ namespace tntmq
     class VirtualHost
     {
     public:
+        using ptr = std::shared_ptr<VirtualHost>;
         VirtualHost(const std::string &hname, const std::string &basedir, const std::string &dbfile) : _host_name(hname),
                                                                                                        _emp(std::make_shared<ExchangeManager>(dbfile)),
                                                                                                        _mqm(std::make_shared<MsgQueueManager>(dbfile)),
@@ -23,11 +24,21 @@ namespace tntmq
         }
         bool declareExchange(const std::string &name,
                              ExchangeType type, bool durable, bool auto_delete,
-                             std::unordered_map<std::string, std::string> &args)
+                             const google::protobuf::Map<std::string, std::string> &args)
         {
             _emp->declareExchange(name, type, durable, auto_delete, args);
         }
 
+        bool existsExchange(const std::string &name)
+        {
+            return _emp->exists(name);
+        }
+
+        Exchange::ptr selectExchange(const std::string &ename)
+        {
+            return _emp->selectExchange(ename);
+        }
+        
         void deleteExchange(const std::string &name)
         {
             // 删除交换机需要将相关的绑定信息也删掉
@@ -36,7 +47,7 @@ namespace tntmq
         }
 
         bool declareQueue(const std::string &qname, bool qdurable, bool qexclusive, bool qauto_delete,
-                          std::unordered_map<std::string, std::string> &args)
+                          const google::protobuf::Map<std::string, std::string> &args)
         {
             // 初始化队列消息句柄（小心存储管理）
             // 队列的创建

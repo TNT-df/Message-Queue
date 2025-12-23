@@ -19,10 +19,10 @@ namespace tntmq
         bool durable;
         bool exclusive;
         bool auto_delete;
-        std::unordered_map<std::string, std::string> args;
+        google::protobuf::Map<std::string, std::string> args;
 
         MsgQueue() {}
-        MsgQueue(const std::string &qname, bool qdurable, bool qexclusive, bool qauto_delete, const std::unordered_map<std::string, std::string> &qargs)
+        MsgQueue(const std::string &qname, bool qdurable, bool qexclusive, bool qauto_delete, const google::protobuf::Map<std::string, std::string> &qargs)
             : name(qname), durable(qdurable), exclusive(qexclusive), auto_delete(qauto_delete), args(qargs) {}
 
         void setArgs(const std::string &str)
@@ -39,7 +39,7 @@ namespace tntmq
                 {
                     std::string key = kv.substr(0, pos);
                     std::string val = kv.substr(pos + 1);
-                    this->args.insert(std::make_pair(key, val));
+                    this->args[key] = val;
                 }
             }
         }
@@ -178,7 +178,7 @@ namespace tntmq
             _msg_queues = _mapper.recovery();
         }
         // 声明交换机
-        bool declareMsgQueue(const std::string &name, bool durable, bool exclusive, bool auto_delete, const std::unordered_map<std::string, std::string> &eargs)
+        bool declareMsgQueue(const std::string &name, bool durable, bool exclusive, bool auto_delete, const google::protobuf::Map<std::string, std::string> &eargs)
         {
             std::unique_lock<std::mutex> lock(_mutex);
             auto it = _msg_queues.find(name);

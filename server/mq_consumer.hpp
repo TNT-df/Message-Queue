@@ -9,7 +9,7 @@
 #include <vector>
 #include <functional>
 
-namespace tntdf
+namespace tntmq
 {
     using ConsumerCallBack = std::function<void(const std::string & /*body*/, const BasicProperties *bp /*bp*/, const std::string & /*tag*/)>;
 
@@ -128,6 +128,7 @@ namespace tntdf
         std::mutex _mutex;
 
     public:
+         using ptr = std::shared_ptr<ConsumerManager>;
         ConsumerManager()
         {
         }
