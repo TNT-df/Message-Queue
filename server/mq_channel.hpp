@@ -29,6 +29,7 @@ namespace tntmq
     class Channel
     {
     public:
+        using ptr = std::shared_ptr<Channel>;
         Channel(const std::string &id, const VirtualHost::ptr &host, ConsumerManager::ptr &cmp, const ProtobufCodecPtr &codec,
                 const muduo::net::TcpConnectionPtr &conn, const ThreadPool::ptr &pool)
             : _cid(id),
@@ -124,18 +125,89 @@ namespace tntmq
                 {
                     // 3.将消息添加到队列
                     _vhost->basicPublish(binding.first, properties, req->body());
+                    // 4.向线程池中添加一个消息消费任务(向指定队列的订阅者发送消息,线程池完成)
+                    auto task = std::bind(&Channel::consume, this, binding.first);
+                    _pool->push(task);
                 }
             }
-            // 4.向线程池中添加一个消息消费任务(向指定队列的订阅者发送消息,线程池完成)
+            return basicResponse(true, req->rid(), req->cid());
         }
         // 消息的确认
-        void basicAck(const basicAckRequest &req);
+        void basicAck(const basicAckRequestPtr &req)
+        {
+            _vhost->basicAck(req->queue_name(), req->message_id());
+            return basicResponse(true, req->rid(), req->cid());
+        }
         // 订阅队列消息
-        void basicConsume(const basicConsumeRequest &req);
+        void basicConsume(const basicConsumeRequestPtr &req)
+        {
+            // 1、判断队列是否存在
+            bool ret = _vhost->existsQueue(req->queue_name());
+            if (ret == false)
+            {
+                return basicResponse(false, req->rid(), req->cid());
+            }
+            auto cb = std::bind(&Channel::callback, this,
+                                std::placeholders::_1,
+                                std::placeholders::_2,
+                                std::placeholders::_3);
+            // 2、创建消费者信息,当前的channel角色就是消费者
+            _consumer = _cmp->create(req->consumer_tag(),
+                                     req->queue_name(),
+                                     req->auto_ack(), cb);
+            return basicResponse(true, req->rid(), req->cid());
+        }
         // 取消订阅
-        void basicCancel(const basicCancelRequest &req);
+        void basicCancel(const basicCancelRequestPtr &req)
+        {
+            _cmp->remove(req->consumer_tag(), req->queue_name());
+            return basicResponse(true, req->rid(), req->cid());
+        }
 
     private:
+        void callback(const std::string tag, const BasicProperties *bp, const std::string body)
+        {
+            // 针对参数组织出推送消息请求，将消息推送给channel对应的客户端
+            basicConsumeResponse resp;
+            resp.set_cid(_cid);
+            resp.set_body(body);
+            resp.set_consumer_tag(tag);
+            if (bp)
+            {
+                resp.mutable_properties()->set_id(bp->id());
+                resp.mutable_properties()->set_routing_key(bp->routing_key());
+                resp.mutable_properties()->set_delivery_mode(bp->delivery_mode());
+            }
+            _codec->send(_conn, resp);
+        }
+
+        void consume(const std::string &qname)
+        {
+            // 指定队列消费消息
+            // 从队列中取出一条消息
+            Messageptr mp = _vhost->basicConsume(qname);
+            if (mp.get() == nullptr)
+            {
+                LOG(LogLevel::DEBUG, "队列%s无可消费消息", qname.c_str());
+                return;
+            }
+
+            // 从队列订阅者中取出一个订阅者
+            Consumer::ptr consumer = _cmp->choose(qname);
+            if (consumer.get() == nullptr)
+            {
+                LOG(LogLevel::DEBUG, "队列%s无可用订阅者", qname.c_str());
+                return;
+            }
+            // 调用订阅者对应的消息处理函数，实现消息的推送
+            consumer->callback(consumer->tag, mp->mutable_payload()->mutable_properties(), mp->mutable_payload()->body());
+            if (consumer->auto_ack)
+            {
+                // 自动确认，删除消息
+                _vhost->basicAck(qname, mp->payload().properties().id());
+            }
+            // 判断如果订阅者是自动确认 --不需要等待消息，直接删除消息，否则需要外部收到消息确认后再删除
+        }
         void basicResponse(bool ok, const std::string &rid, const std::string &cid)
         {
             basicCommonResponse resp;
@@ -153,6 +225,48 @@ namespace tntmq
         VirtualHost::ptr _vhost;
         ThreadPool::ptr _pool;
         ProtobufCodecPtr _codec;
+    };
+
+    class ChannelManager
+    {
+    public:
+        using ptr = std::shared_ptr<ChannelManager>;
+        ChannelManager()
+        {
+        }
+        bool openChannel(const std::string &id, const VirtualHost::ptr &host, ConsumerManager::ptr &cmp, const ProtobufCodecPtr &codec,
+                         const muduo::net::TcpConnectionPtr &conn, const ThreadPool::ptr &pool)
+        {
+            std::unique_lock<std::mutex> _lock(_mutex);
+            if (_channels.find(id) == _channels.end())
+            {
+                _channels.insert(std::make_pair(id, std::make_shared<Channel>(id, host, cmp, codec, conn, pool)));
+                return true;
+            }
+            else
+                return false;
+        }
+
+        void closeChannel(const std::string &id)
+        {
+            std::unique_lock<std::mutex> _lock(_mutex);
+            _channels.erase(id);
+        }
+
+        Channel::ptr getChannerl(const std::string &id)
+        {
+            std::unique_lock<std::mutex> _lock(_mutex);
+            auto it = _channels.find(id);
+            if (it != _channels.end())
+            {
+                return it->second;
+            }
+            return nullptr;
+        }
+
+    private:
+        std::unordered_map<std::string, Channel::ptr> _channels;
+        std::mutex _mutex;
     };
 }
 #endif

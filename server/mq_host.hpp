@@ -39,6 +39,10 @@ namespace tntmq
             return _emp->selectExchange(ename);
         }
         
+        bool existsQueue(const std::string &name)
+        {
+            return _mqm->exists(name);
+        }
         void deleteExchange(const std::string &name)
         {
             // 删除交换机需要将相关的绑定信息也删掉

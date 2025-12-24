@@ -11,7 +11,7 @@
 
 namespace tntmq
 {
-    using ConsumerCallBack = std::function<void(const std::string & /*body*/, const BasicProperties *bp /*bp*/, const std::string & /*tag*/)>;
+    using ConsumerCallBack = std::function<void(const std::string & /*tag*/, const BasicProperties *bp /*bp*/, const std::string & /*body*/)>;
 
     struct Consumer
     {
@@ -25,7 +25,7 @@ namespace tntmq
         {
         }
         Consumer(const std::string &ctag, const std::string &queue_name, bool ack, ConsumerCallBack &cb) : tag(ctag),
-                                                                                                           qname(queue_name), ack(auto_ack), callback(cb)
+                                                                                                           qname(queue_name), auto_ack(ack), callback(cb)
         {
         }
     };
@@ -52,7 +52,7 @@ namespace tntmq
             }
 
             // 没有重复则新增--构造对象
-            Consumer::ptr consumer = std::make_shared<Consumer::ptr>(ctag, queue_name, ack, cb);
+            Consumer::ptr consumer = std::make_shared<Consumer>(ctag, queue_name, ack, cb);
             _consumers.emplace_back(consumer);
             // 添加管理后返回对象
             return consumer;
@@ -128,7 +128,7 @@ namespace tntmq
         std::mutex _mutex;
 
     public:
-         using ptr = std::shared_ptr<ConsumerManager>;
+        using ptr = std::shared_ptr<ConsumerManager>;
         ConsumerManager()
         {
         }
