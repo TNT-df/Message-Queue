@@ -219,7 +219,7 @@ namespace tntmq
             }
             return nullptr;
         }
-        const std::unordered_map<std::string, MsgQueue::ptr> allQueues()
+         std::unordered_map<std::string, MsgQueue::ptr> allQueues()
         {
             std::unique_lock<std::mutex> lock(_mutex);
             return _msg_queues;

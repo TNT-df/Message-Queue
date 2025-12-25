@@ -25,7 +25,7 @@ namespace tntmq
         {
         }
         Consumer(const std::string &ctag, const std::string &queue_name, bool ack, ConsumerCallBack &cb) : tag(ctag),
-                                                                                                           qname(queue_name), auto_ack(ack), callback(cb)
+                                                                                                           qname(queue_name), auto_ack(ack), callback(std::move(cb))
         {
         }
     };

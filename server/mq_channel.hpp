@@ -165,7 +165,7 @@ namespace tntmq
         }
 
     private:
-        void callback(const std::string tag, const BasicProperties *bp, const std::string body)
+        void callback(const std::string &tag, const BasicProperties *bp, const std::string &body)
         {
             // 针对参数组织出推送消息请求，将消息推送给channel对应的客户端
             basicConsumeResponse resp;
@@ -253,7 +253,7 @@ namespace tntmq
             _channels.erase(id);
         }
 
-        Channel::ptr getChannerl(const std::string &id)
+        Channel::ptr getChannel(const std::string &id)
         {
             std::unique_lock<std::mutex> _lock(_mutex);
             auto it = _channels.find(id);

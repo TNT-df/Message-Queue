@@ -38,10 +38,15 @@ namespace tntmq
         {
             return _emp->selectExchange(ename);
         }
-        
+
         bool existsQueue(const std::string &name)
         {
             return _mqm->exists(name);
+        }
+
+        std::unordered_map<std::string, MsgQueue::ptr> allQueues()
+        {
+            return _mqm->allQueues();
         }
         void deleteExchange(const std::string &name)
         {
